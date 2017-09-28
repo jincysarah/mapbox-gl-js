@@ -45,7 +45,7 @@ class StyleDeclaration {
             return 0;
         } else {
             return Curve.interpolationFactor(
-                this.function.zoomCurve.interpolation,
+                this.function.interpolation,
                 zoom,
                 lower,
                 upper

@@ -2,7 +2,7 @@
 
 const parseColor = require('../util/parse_color');
 const compileExpression = require('./compile');
-const convert = require('./convert');
+const legacyFunction = require('./legacy_function');
 const {
     ColorType,
     StringType,
@@ -17,6 +17,7 @@ const Coalesce = require('./definitions/coalesce');
 const Let = require('./definitions/let');
 
 import type {Expression} from './expression';
+import type {InterpolationType} from './definitions/curve';
 
 export type Feature = {
     +type: 1 | 2 | 3 | 'Unknown' | 'Point' | 'MultiPoint' | 'LineString' | 'MultiLineString' | 'Polygon' | 'MultiPolygon',
@@ -32,7 +33,8 @@ export type StyleFunction = {
     isZoomConstant: false,
     isFeatureConstant: boolean,
     evaluate: ({+zoom?: number}, feature?: Feature) => any,
-    zoomCurve: Curve
+    interpolation: InterpolationType,
+    zoomStops: Array<number>
 };
 
 type StylePropertySpecification = {
@@ -79,38 +81,19 @@ function createFunction(parameters: FunctionParameters, propertySpec: StylePrope
         };
     }
 
-    let expr;
-    let defaultValue = propertySpec.default;
-    let isConvertedStopFunction = false;
-
-    if (parameters.expression) {
-        expr = parameters.expression;
-    } else {
-        expr = convert.function(parameters, propertySpec);
-        isConvertedStopFunction = true;
-        if (parameters && typeof parameters.default !== 'undefined') {
-            defaultValue = parameters.default;
-        }
+    if (!parameters.expression) {
+        return legacyFunction(parameters, propertySpec);
     }
 
-    if (propertySpec.type === 'color') {
-        defaultValue = parseColor((defaultValue: any));
-    }
-
-    if (expr === null) {
-        return {
-            isFeatureConstant: true,
-            isZoomConstant: true,
-            evaluate() { return defaultValue; }
-        };
-    }
-
-    const expectedType = getExpectedType(propertySpec);
-    const compiled = compileExpression(expr, expectedType);
-
+    const compiled = compileExpression(parameters.expression, getExpectedType(propertySpec));
     if (compiled.result !== 'success') {
         // this should have been caught in validation
         throw new Error(compiled.errors.map(err => `${err.key}: ${err.message}`).join(', '));
+    }
+
+    let defaultValue = propertySpec.default;
+    if (propertySpec.type === 'color') {
+        defaultValue = parseColor((defaultValue: any));
     }
 
     const warningHistory: {[key: string]: boolean} = {};
@@ -122,7 +105,7 @@ function createFunction(parameters: FunctionParameters, propertySpec: StylePrope
             }
             return val;
         } catch (e) {
-            if (!isConvertedStopFunction && !warningHistory[e.message]) {
+            if (!warningHistory[e.message]) {
                 warningHistory[e.message] = true;
                 if (typeof console !== 'undefined') {
                     console.warn(e.message);
@@ -150,7 +133,8 @@ function createFunction(parameters: FunctionParameters, propertySpec: StylePrope
         return {
             isZoomConstant: false,
             isFeatureConstant: compiled.isFeatureConstant,
-            zoomCurve,
+            interpolation: zoomCurve.interpolation,
+            zoomStops: zoomCurve.stops.map(s => s[0]),
             evaluate
         };
     }

@@ -1032,7 +1032,7 @@ test('unknown function', (t) => {
         type: 'nonesuch', stops: [[]]
     }, {
         type: 'string'
-    }), /Unknown zoom function type "nonesuch"/);
+    }), /Unknown function type "nonesuch"/);
     t.end();
 });
 
