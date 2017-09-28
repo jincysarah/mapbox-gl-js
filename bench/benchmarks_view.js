@@ -307,7 +307,7 @@ class BenchmarkRow extends React.Component {
                     {this.renderStatistic('(20% trimmed) Mean',
                         (version) => <p>
                             {formatSample(version.summary.trimmedMean)} ms
-                            {version.name === current.name && change}
+                            {change && version.name === current.name}
                         </p>)}
                     {this.renderStatistic('(Windsorized) Deviation',
                         (version) => <p>{formatSample(version.summary.windsorizedDeviation)} ms</p>)}
