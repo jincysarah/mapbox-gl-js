@@ -17,7 +17,7 @@ class StyleDeclaration {
     minimum: number;
     function: StyleFunction;
 
-    constructor(reference: any, value: any) {
+    constructor(reference: any, value: any, name: string) {
         this.value = util.clone(value);
         this.isFunction = createFunction.isFunctionDefinition(value);
 
@@ -25,7 +25,7 @@ class StyleDeclaration {
         this.json = JSON.stringify(this.value);
 
         this.minimum = reference.minimum;
-        this.function = createFunction(this.value, reference);
+        this.function = createFunction(this.value, reference, name);
     }
 
     calculate(globalProperties: {+zoom?: number} = {}, feature?: Feature) {
